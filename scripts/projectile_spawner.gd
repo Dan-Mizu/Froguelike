@@ -62,7 +62,7 @@ func setup(_spell_id: String) -> ProjectileSpawner:
 
 		# set up collision
 		(bulletType._shape as CircleShape2D).radius = (((texture as Texture2D).get_size().y) / 8) * bulletType.scale
-		prints(spell_id, (bulletType._shape as CircleShape2D).radius)
+		#prints(spell_id, (bulletType._shape as CircleShape2D).radius)
 	else:
 		# load texture
 		texture = load(texture_data["spritesheet"])
@@ -77,7 +77,7 @@ func setup(_spell_id: String) -> ProjectileSpawner:
 
 		# set up collision
 		(bulletType._shape as CircleShape2D).radius = (sprite_size.y / 8) * bulletType.scale
-		prints(spell_id, (bulletType._shape as CircleShape2D).radius, sprite_size, bulletType.scale)
+		#prints(spell_id, (bulletType._shape as CircleShape2D).radius, sprite_size, bulletType.scale)
 
 	return self
 
