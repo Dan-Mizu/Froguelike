@@ -1,22 +1,50 @@
-[gd_scene load_steps=3 format=3 uid="uid://0wlx4j6w2c4f"]
+[gd_scene load_steps=7 format=3 uid="uid://cesyye0wb88pr"]
 
-[sub_resource type="Gradient" id="Gradient_tcsvw"]
-offsets = PackedFloat32Array(0, 0.739777)
-colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 0)
+[ext_resource type="Script" path="res://scripts/light.gd" id="1_ya4x5"]
 
-[sub_resource type="GradientTexture2D" id="GradientTexture2D_4lxf6"]
-gradient = SubResource("Gradient_tcsvw")
+[sub_resource type="Gradient" id="Gradient_msmr7"]
+interpolation_mode = 1
+offsets = PackedFloat32Array(0, 0.254167, 0.4875, 0.55, 0.6375, 0.695833)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0.968627, 1, 1, 1, 0.619608, 1, 1, 1, 0.439216, 1, 1, 1, 0.184314, 0, 0, 0, 0)
+
+[sub_resource type="Gradient" id="Gradient_10hls"]
+interpolation_mode = 1
+offsets = PackedFloat32Array(0, 0.254167, 0.4875, 0.55, 0.6375, 0.695833)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0.968627, 1, 1, 1, 0.619608, 1, 1, 1, 0.439216, 1, 1, 1, 0.184314, 0, 0, 0, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_ev3ut"]
+gradient = SubResource("Gradient_10hls")
 width = 128
 height = 128
 fill = 1
 fill_from = Vector2(0.5, 0.5)
 
-[node name="Light" type="PointLight2D"]
-energy = 0.8
-texture = SubResource("GradientTexture2D_4lxf6")
+[sub_resource type="Gradient" id="Gradient_lbdnx"]
+interpolation_mode = 1
+offsets = PackedFloat32Array(0, 0.254167, 0.4875, 0.55, 0.6375, 0.695833)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0.968627, 1, 1, 1, 0.619608, 1, 1, 1, 0.439216, 1, 1, 1, 0.184314, 0, 0, 0, 0)
 
-[node name="Shadow" type="PointLight2D" parent="."]
-energy = 0.8
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_u5580"]
+gradient = SubResource("Gradient_lbdnx")
+width = 128
+height = 128
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+
+[node name="Light" type="Node2D"]
+script = ExtResource("1_ya4x5")
+gradient = SubResource("Gradient_msmr7")
+
+[node name="Player Light" type="PointLight2D" parent="."]
+unique_name_in_owner = true
+blend_mode = 2
+shadow_item_cull_mask = 3
+texture = SubResource("GradientTexture2D_ev3ut")
+
+[node name="Environment Light" type="PointLight2D" parent="Player Light"]
+unique_name_in_owner = true
+position = Vector2(0, -1)
+blend_mode = 2
 range_item_cull_mask = 2
 shadow_enabled = true
-texture = SubResource("GradientTexture2D_4lxf6")
+texture = SubResource("GradientTexture2D_u5580")
