@@ -1,6 +1,6 @@
 [gd_scene load_steps=9 format=3 uid="uid://hlr5sueqo158"]
 
-[ext_resource type="Texture2D" uid="uid://c86bpktxd4hk1" path="res://icon.svg" id="1_161g3"]
+[ext_resource type="Texture2D" uid="uid://dmoxvyb57rtnh" path="res://icon.svg" id="1_161g3"]
 [ext_resource type="Script" path="res://addons/PerfBullets/GDScript_Classes/BulletBorder.gd" id="2_8av7u"]
 [ext_resource type="Script" path="res://addons/PerfBullets/GDScript_Classes/PatternManager.gd" id="3_j2p7r"]
 [ext_resource type="PackedScene" uid="uid://duq34uom7vsr6" path="res://addons/PerfBullets/Examples/player.tscn" id="4_in8cm"]

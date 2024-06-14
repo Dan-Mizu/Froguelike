@@ -1,14 +1,14 @@
 [gd_scene load_steps=6 format=3 uid="uid://bmri8ipcr28yy"]
 
 [ext_resource type="PackedScene" uid="uid://duq34uom7vsr6" path="res://addons/PerfBullets/Examples/player.tscn" id="1_354w6"]
-[ext_resource type="Texture2D" uid="uid://defj1hlpkknhx" path="res://addons/PerfBullets/test_bullet_animation_sheet.png" id="2_t4mid"]
+[ext_resource type="Texture2D" uid="uid://dxxev4cmkw85d" path="res://addons/PerfBullets/test_bullet_animation_sheet.png" id="2_t4mid"]
 [ext_resource type="Script" path="res://addons/PerfBullets/GDScript_Classes/BulletBorder.gd" id="4_qwddb"]
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_e0y3q"]
+[sub_resource type="CircleShape2D" id="CircleShape2D_8splg"]
 
 [sub_resource type="BulletType" id="BulletType_yiogt"]
 initialSpeed = 150.0
-_shape = SubResource("CircleShape2D_e0y3q")
+_shape = SubResource("CircleShape2D_8splg")
 mask = 2
 
 [node name="manual_start" type="Node2D"]

@@ -134,7 +134,7 @@ func get_registered_object_groups():
 
 func create_or_append(tile_set: Dictionary):
 	# Catch the AutoMap Rules tileset (is Tiled internal)
-	if tile_set.has("name") and tile_set["name"] == "AutoMap Rules":
+	if tile_set.has("name") and str(tile_set["name"]) == "AutoMap Rules":
 		return # This is no error just skip it
 
 	if not _append:
@@ -405,7 +405,7 @@ func handle_objectgroup(object_group: Dictionary, current_tile: TileData, tile_i
 	register_object_group(_object_groups_counter, object_group)
 	current_tile.set_custom_data(CUSTOM_DATA_INTERNAL, _object_groups_counter)
 	
-	var polygon_index = -1
+	var polygon_indices = {}
 	var objects = object_group["objects"] as Array
 	for obj in objects:
 		if obj.has("point") and obj["point"]:
@@ -450,10 +450,10 @@ func handle_objectgroup(object_group: Dictionary, current_tile: TileData, tile_i
 			# Should be a simple rectangle
 			polygon = [Vector2(), Vector2(), Vector2(), Vector2()]
 			polygon[0] = Vector2.ZERO
-			polygon[1].y = polygon[0].y + obj["height"]
+			polygon[1].y = polygon[0].y + obj.get("height", 0.0)
 			polygon[1].x = polygon[0].x
 			polygon[2].y = polygon[1].y
-			polygon[2].x = polygon[0].x + obj["width"]
+			polygon[2].x = polygon[0].x + obj.get("width", 0.0)
 			polygon[3].y = polygon[0].y
 			polygon[3].x = polygon[2].x
 			var i = 0
@@ -490,7 +490,8 @@ func handle_objectgroup(object_group: Dictionary, current_tile: TileData, tile_i
 		if phys < 0 and nav < 0 and occ < 0:
 			phys = 0
 		if phys < 0: continue
-		polygon_index += 1
+		var polygon_index = polygon_indices.get(phys, 0)
+		polygon_indices[phys] = polygon_index + 1
 		ensure_layer_existing(layer_type.PHYSICS, phys)
 		current_tile.add_collision_polygon(phys)
 		current_tile.set_collision_polygon_points(phys, polygon_index, polygon)
