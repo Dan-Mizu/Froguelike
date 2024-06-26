@@ -15,7 +15,7 @@ shader_parameter/line_thickness = 2.0
 atlas = ExtResource("4_ttk1v")
 region = Rect2(356, 50, 17, 18)
 
-[node name="HUD" type="CanvasLayer"]
+[node name="HUD" type="CanvasLayer" groups=["HUD"]]
 script = ExtResource("1_dk435")
 heart_icon = ExtResource("5_fosyb")
 

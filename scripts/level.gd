@@ -111,7 +111,7 @@ func _init_static_level() -> void:
 			# teleporter
 			elif type == "teleporter":
 				# create teleporter
-				var teleporter: Interactable = preload(teleporter_path).instantiate().setup(object_data.get_meta("id"), hud) as Teleporter
+				var teleporter: Interactable = preload(teleporter_path).instantiate().setup(object_data.get_meta("id")) as Teleporter
 
 				# add to objects group
 				objects.add_child(teleporter)
@@ -121,10 +121,7 @@ func _init_static_level() -> void:
 
 			# lootable
 			elif type == "lootable":
-				var lootable: Interactable = preload(lootable_path).instantiate().setup(object_data.get_meta("id"), hud) as Lootable
-
-				# give HUD reference
-				lootable.hud = hud
+				var lootable: Interactable = preload(lootable_path).instantiate().setup(object_data.get_meta("id")) as Lootable
 
 				# add to objects group
 				objects.add_child(lootable)

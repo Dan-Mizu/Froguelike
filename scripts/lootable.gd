@@ -2,30 +2,36 @@ class_name Lootable
 extends Interactable
 
 # properties
-var sounds: Dictionary
-var loot: String
+@export var sounds: Dictionary
+@export var loot: String
 
 # init properties
-func setup(_id: String, hud_reference: HUD) -> Lootable:
+func setup(_id: String) -> Lootable:
 	# save ID
 	id = _id
 
-	# save hud reference
-	hud = hud_reference
-
-	# get type
-	type = Cache.data["lootables"][id]["type"]
-
-	# get texture
-	texture_key = Cache.data["interactables"][type]["texture"]
-
-	# get sounds
-	sounds = Cache.data["interactables"][type]["sounds"]
-
-	# get properties
-	loot = Cache.data["lootables"][id]["loot"]
-
 	return self
+
+func _ready() -> void:
+	# fetch set lootable's properties
+	if id:
+		# get type
+		if not type:
+			type = Cache.data["lootables"][id]["type"]
+
+		# get texture
+		if not texture_key:
+			texture_key = Cache.data["interactables"][type]["texture"]
+
+		# get sounds
+		if not sounds:
+			sounds = Cache.data["interactables"][type]["sounds"]
+
+		# get loot
+		if not loot:
+			loot = Cache.data["lootables"][id]["loot"]
+
+	super()
 
 # hints
 func start_interact_hint() -> void:

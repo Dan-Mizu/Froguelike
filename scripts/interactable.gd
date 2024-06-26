@@ -2,17 +2,18 @@ class_name Interactable
 extends PhysicsBody2D
 
 # references
-@export_category("References")
 @onready var sprite_group: CanvasGroup = %Sprites
 @onready var occluders_group: Node2D = %Occluders
 @onready var physics_collider: CollisionPolygon2D = %PhysicsCollider
 @onready var sensor_collider: CollisionPolygon2D = %SensorCollider
-var hud: HUD
+@onready var hud: HUD = get_tree().get_nodes_in_group("HUD")[0]
+
+# properties
+@export var id: String
+@export var type: String
+@export var texture_key: String
 
 # internal
-var id: String
-var type: String
-var texture_key: String
 var polygons: Dictionary = {}
 var sprite
 

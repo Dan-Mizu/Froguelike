@@ -2,26 +2,31 @@ class_name Teleporter
 extends Interactable
 
 # properties
-var destination: String
+@export var destination: String
 
 # init properties
-func setup(_id: String, hud_reference: HUD) -> Teleporter:
+func setup(_id: String) -> Teleporter:
 	# save ID
 	id = _id
 
-	# save hud reference
-	hud = hud_reference
-
-	# get type
-	type = Cache.data["teleporters"][id]["type"]
-
-	# get texture
-	texture_key = Cache.data["interactables"][type]["texture"]
-
-	# get properties
-	destination = Cache.data["teleporters"][id]["destination"]
-
 	return self
+
+func _ready() -> void:
+	#fetch set teleporter's properties
+	if id:
+		# get type
+		if not type:
+			type = Cache.data["teleporters"][id]["type"]
+
+		# get texture
+		if not texture_key:
+			texture_key = Cache.data["interactables"][type]["texture"]
+
+		# get destination
+		if not destination:
+			destination = Cache.data["teleporters"][id]["destination"]
+
+	super()
 
 # methods
 func interact() -> void:

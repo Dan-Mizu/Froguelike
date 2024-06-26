@@ -15,6 +15,7 @@ script = ExtResource("1_m15y5")
 
 [node name="Sprites" type="CanvasGroup" parent="."]
 unique_name_in_owner = true
+z_index = 1
 material = SubResource("ShaderMaterial_0ub0k")
 
 [node name="Occluders" type="Node2D" parent="."]
