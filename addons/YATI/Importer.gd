@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright (c) 2023 Roland Helmerichs
+# Copyright (c) 2024 Roland Helmerichs
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -49,12 +49,12 @@ func _get_preset_name(preset_index: int) -> String:
 
 func _get_import_options(path: String, preset_index: int) -> Array:
 	return [
-		{ "name": "use_tilemap_layers", "default_value": false },
 		{ "name": "use_default_filter", "default_value": false },
 		{ "name": "add_class_as_metadata", "default_value": false },
 		{ "name": "add_id_as_metadata", "default_value": false },
 		{ "name": "no_alternative_tiles", "default_value": false },
 		{ "name": "map_wangset_to_terrain", "default_value": false },
+		{ "name": "custom_data_prefix", "default_value": "data_" },
 		{ "name": "tiled_project_file", "default_value": "", "property_hint": PROPERTY_HINT_FILE, "hint_string": "*.tiled-project;Project File" },
 		{ "name": "post_processor", "default_value": "", "property_hint": PROPERTY_HINT_FILE, "hint_string": "*.gd;GDScript" },
 		{ "name": "save_tileset_to", "default_value": "", "property_hint": PROPERTY_HINT_SAVE_FILE, "hint_string": "*.tres;Resource File" }
@@ -74,8 +74,6 @@ func _import(source_file: String, save_path: String, options: Dictionary, platfo
 
 	var ct: CustomTypes = null
 	var tilemapCreator = preload("TilemapCreator.gd").new()
-	if options["use_tilemap_layers"] == false:
-		tilemapCreator.set_map_layers_to_tilemaps(true)
 	if options["use_default_filter"] == true:
 		tilemapCreator.set_use_default_filter(true)
 	if options["add_class_as_metadata"] == true:
@@ -86,8 +84,10 @@ func _import(source_file: String, save_path: String, options: Dictionary, platfo
 		tilemapCreator.set_no_alternative_tiles(true)
 	if options["map_wangset_to_terrain"] == true:
 		tilemapCreator.set_map_wangset_to_terrain(true)
+	if options["custom_data_prefix"] != "":
+		tilemapCreator.set_custom_data_prefix(options["custom_data_prefix"])
 	if options.has("tiled_project_file") and options["tiled_project_file"] != "":
-		ct = preload("CustomTypes.gd").new()
+		ct = CustomTypes.new()
 		ct.load_custom_types(options["tiled_project_file"])
 		tilemapCreator.set_custom_types(ct)
 

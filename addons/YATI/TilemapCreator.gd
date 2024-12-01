@@ -1,6 +1,6 @@
 # MIT License
 #
-# Copyright (c) 2023 Roland Helmerichs
+# Copyright (c) 2024 Roland Helmerichs
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,7 @@ const FLIPPED_DIAGONALLY_FLAG = 0x20000000
 const BACKGROUND_COLOR_RECT_NAME = "Background Color"
 const WARNING_COLOR = "Yellow"
 const CUSTOM_DATA_INTERNAL = "__internal__"
+const CLASS_INTERNAL = "class"
 const GODOT_NODE_TYPE_PROPERTY = "godot_node_type"
 const GODOT_GROUP_PROPERTY = "godot_group"
 const GODOT_SCRIPT_PROPERTY = "godot_script"
@@ -45,9 +46,7 @@ var _parallax_origin_x: int = 0
 var _parallax_origin_y: int = 0
 var _background_color = ""
 
-var _tilemap = null
-var _tilemap_offset_x: float = 0.0
-var _tilemap_offset_y: float = 0.0
+var _tilemap_layer = null
 var _tileset = null
 var _current_tileset_orientation: String
 var _current_object_alignment: String
@@ -60,8 +59,6 @@ var _base_path = ""
 var _base_name = ""
 var _encoding = ""
 var _compression = ""
-var _map_layers_to_tilemaps = false
-var _tm_layer_counter: int = 0
 var _first_gids = []
 var _atlas_sources = null
 var _use_default_filter = false
@@ -69,6 +66,7 @@ var _map_wangset_to_terrain = false
 var _add_class_as_metadata = false
 var _add_id_as_metadata = false
 var _dont_use_alternative_tiles = false
+var _custom_data_prefix: String = ""
 var _object_groups
 var _ct: CustomTypes = null
 
@@ -108,10 +106,6 @@ func get_warning_count():
 	return _warning_count
 	
 
-func set_map_layers_to_tilemaps(value: bool):
-	_map_layers_to_tilemaps = value
-
-
 func set_use_default_filter(value: bool):
 	_use_default_filter = value
 
@@ -129,8 +123,12 @@ func set_no_alternative_tiles(value: bool):
 
 
 func set_map_wangset_to_terrain(value: bool):
-		_map_wangset_to_terrain = value
-	
+	_map_wangset_to_terrain = value
+
+
+func set_custom_data_prefix(value: String):
+	_custom_data_prefix = value
+
 
 func set_custom_types(ct: CustomTypes):
 	_ct = ct
@@ -176,6 +174,7 @@ func create(source_file: String):
 			tileset_creator.set_custom_types(_ct)	
 		if _map_wangset_to_terrain:
 			tileset_creator.map_wangset_to_terrain()
+		tileset_creator.set_custom_data_prefix(_custom_data_prefix)
 		_tileset = tileset_creator.create_from_dictionary_array(tilesets)
 		_error_count = tileset_creator.get_error_count()
 		_warning_count = tileset_creator.get_warning_count()
@@ -204,8 +203,6 @@ func create(source_file: String):
 			_tileset.tile_layout = TileSet.TILE_LAYOUT_STACKED if stagger_index == "odd" else TileSet.TILE_LAYOUT_STACKED_OFFSET
 			_tileset.tile_offset_axis = TileSet.TILE_OFFSET_AXIS_VERTICAL if stagger_axis == "x" else TileSet.TILE_OFFSET_AXIS_HORIZONTAL
 	
-	_tm_layer_counter = 0
-
 	_base_node = Node2D.new()
 	_base_name = source_file.get_file().get_basename()
 	_base_node.name = _base_name
@@ -226,7 +223,7 @@ func create(source_file: String):
 			handle_layer(layer, _base_node)
 
 	if base_dictionary.has("properties"):
-		handle_properties(_base_node, base_dictionary["properties"], true)
+		handle_properties(_base_node, base_dictionary["properties"])
 
 	if _parallax_background.get_child_count() == 0:
 		_base_node.remove_child(_parallax_background)
@@ -240,7 +237,7 @@ func create(source_file: String):
 	var ret = _base_node.get_child(0)
 	recursively_change_owner(ret, ret)
 	if base_dictionary.has("properties"):
-		handle_properties(ret, base_dictionary["properties"], true)
+		handle_properties(ret, base_dictionary["properties"])
 	ret.name = _base_name
 	return ret
 
@@ -262,57 +259,25 @@ func handle_layer(layer: Dictionary, parent: Node2D):
 	if get_property(layer, "no_import", "bool") == "true":
 		return
 
-	if layer_type != "tilelayer" and not _map_layers_to_tilemaps:
-		_tilemap = null
-		_tm_layer_counter = 0
-
 	if layer_type == "tilelayer":
 		if _map_orientation == "isometric":
 			layer_offset_x += _map_tile_width * (_map_height / 2.0 - 0.5)
 		var layer_name = str(layer["name"])
-		if _map_layers_to_tilemaps:
-			_tilemap = TileMap.new()
-			if layer_name != "":
-				_tilemap.name = layer_name
-			_tilemap.visible = layer_visible
-			if layer_offset_x > 0 or layer_offset_y > 0:
-				_tilemap.position = Vector2(layer_offset_x, layer_offset_y)
-			if layer_opacity < 1.0 or tint_color != "#ffffff":
-				_tilemap.modulate = Color(tint_color, layer_opacity)
-			_tilemap.tile_set = _tileset
-			handle_parallaxes(parent, _tilemap, layer)
-			if _map_orientation == "isometric" or _map_orientation == "staggered":
-				_tilemap.y_sort_enabled = true
-				_tilemap.set_layer_y_sort_enabled(0, true)
-		else:
-			if _tilemap == null:
-				_tilemap = TileMap.new()
-				if layer_name != "":
-					_tilemap.name = layer_name
-				_tilemap.remove_layer(0)
-				handle_parallaxes(parent, _tilemap, layer)
-				_tilemap_offset_x = layer_offset_x
-				_tilemap_offset_y = layer_offset_y
-				_tilemap.position = Vector2(layer_offset_x, layer_offset_y)
-				if _map_orientation == "isometric" or _map_orientation == "staggered":
-					_tilemap.y_sort_enabled = true
-			elif layer_name != "":
-				_tilemap.name += "|" + layer_name
-			if _tilemap.tile_set == null:
-				_tilemap.tile_set = _tileset 
-			_tilemap.add_layer(_tm_layer_counter)
-			_tilemap.set_layer_name(_tm_layer_counter, layer_name)
-			_tilemap.set_layer_enabled(_tm_layer_counter, layer_visible)
-			if _map_orientation == "isometric" or _map_orientation == "staggered":
-				_tilemap.set_layer_y_sort_enabled(_tm_layer_counter, true)
-			if abs(layer_offset_x -_tilemap_offset_x) > 0.01 or abs(layer_offset_y - _tilemap_offset_y) > 0.01:
-				print_rich("[color="+WARNING_COLOR+"]Godot 4 has no tilemap layer offsets -> switch off 'use_tilemap_layers'[/color]")
-				_warning_count += 1
-			if layer_opacity < 1.0 or tint_color != "#ffffff":
-				_tilemap.set_layer_modulate(_tm_layer_counter, Color(tint_color, layer_opacity))
+		_tilemap_layer = TileMapLayer.new()
+		if layer_name != "":
+			_tilemap_layer.name = layer_name
+		_tilemap_layer.visible = layer_visible
+		if layer_offset_x > 0 or layer_offset_y > 0:
+			_tilemap_layer.position = Vector2(layer_offset_x, layer_offset_y)
+		if layer_opacity < 1.0 or tint_color != "#ffffff":
+			_tilemap_layer.modulate = Color(tint_color, layer_opacity)
+		_tilemap_layer.tile_set = _tileset
+		handle_parallaxes(parent, _tilemap_layer, layer)
+		if _map_orientation == "isometric" or _map_orientation == "staggered":
+			_tilemap_layer.y_sort_enabled = true
 
 		if not _use_default_filter:
-			_tilemap.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			_tilemap_layer.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		
 		if _infinite and layer.has("chunks"):
 			# Chunks
@@ -331,11 +296,17 @@ func handle_layer(layer: Dictionary, parent: Node2D):
 			if data != null:
 				create_map_from_data(data, 0, 0, _map_width)
 
-		if layer.has("properties"):
-			handle_properties(_tilemap, layer["properties"])
+		var class_string = layer.get("class", "")
+		if class_string == "":
+			class_string = layer.get("type", "")
+		if _add_class_as_metadata and class_string != "":
+			_tilemap_layer.set_meta("class", class_string)
+		var obj_id = layer.get("id", 0)
+		if _add_id_as_metadata and obj_id != 0:
+			_tilemap_layer.set_meta("id", obj_id)
 
-		if not _map_layers_to_tilemaps:
-			_tm_layer_counter += 1
+		if layer.has("properties"):
+			handle_properties(_tilemap_layer, layer["properties"])
 
 	elif layer_type == "objectgroup":
 		var layer_node = Node2D.new()
@@ -417,7 +388,9 @@ func handle_parallaxes(parent: Node, layer_node: Node, layer_dict: Dictionary):
 	if layer_dict.has("parallaxx") or layer_dict.has("parallaxy"):
 		if not _parallax_layer_existing:
 			if _background != null:
+				_background.owner = null
 				_background.reparent(_parallax_background)
+				_background.owner = _base_node
 			_parallax_layer_existing = true
 	
 		var par_x = layer_dict.get("parallaxx", 0.0)
@@ -429,10 +402,10 @@ func handle_parallaxes(parent: Node, layer_node: Node, layer_dict: Dictionary):
 		parallax_node.name = px_name + " (PL)" if px_name != "" else "ParallaxLayer"
 		parallax_node.motion_scale = Vector2(par_x, par_y)
 		parallax_node.add_child(layer_node)
-		layer_node.owner = _base_node
 	else:
 		parent.add_child(layer_node)
-		layer_node.owner = _base_node
+
+	layer_node.owner = _base_node
 
 
 func handle_data(data, map_size):
@@ -612,9 +585,14 @@ func create_map_from_data(layer_data: Array, offset_x: int, offset_y: int, map_w
 						if diff_y % 2 != 0:
 							diff_y += 1
 						tile_data.texture_origin = Vector2i(-diff_x/2, diff_y/2) - tile_offset
-					create_polygons_on_alternative_tiles(atlas_source.get_tile_data(atlas_coords, 0), tile_data, alt_id)
+					
+					var src_data = atlas_source.get_tile_data(atlas_coords, 0)
+					create_polygons_on_alternative_tiles(src_data, tile_data, alt_id)
+					# Copy metadata to alternative tile
+					for meta_name in src_data.get_meta_list():
+						tile_data.set_meta(meta_name, src_data.get_meta(meta_name))
 		
-		_tilemap.set_cell(_tm_layer_counter, cell_coords, source_id, atlas_coords, alt_id)
+		_tilemap_layer.set_cell(cell_coords, source_id, atlas_coords, alt_id)
 
 
 func get_godot_type(godot_type_string: String):
@@ -663,6 +641,44 @@ func set_sprite_offset(obj_sprite: Sprite2D, width: float, height: float, alignm
 		"top": Vector2(0.0, height / 2.0),
 		"topright": Vector2(-width / 2.0, height / 2.0),
 	}.get(alignment, Vector2(width / 2.0, -height / 2.0))
+
+
+func convert_metadata_to_obj_properties(td: TileData, obj: Dictionary) -> void:
+	var meta_list = td.get_meta_list()
+	for meta_name in meta_list:
+		if meta_name.to_lower() == GODOT_NODE_TYPE_PROPERTY:
+			continue
+		if meta_name.to_lower() == CLASS_INTERNAL and not _add_class_as_metadata:
+			continue
+		var meta_val = td.get_meta(meta_name)
+		var meta_type = typeof(meta_val)
+		var prop_dict = {}
+		prop_dict["name"] = meta_name
+		var prop_type = {
+			TYPE_BOOL: "bool",
+			TYPE_INT: "int",
+			TYPE_STRING: "string",
+			TYPE_FLOAT: "float",
+			TYPE_COLOR: "color"
+		}.get(meta_type, "string")
+		# Type "file" assumed and thus forced for these properties
+		if meta_name.to_lower() in ["godot_script", "material", "physics_material_override"]:
+			prop_type = "file"
+
+		prop_dict["type"] = prop_type
+		prop_dict["value"] = meta_val
+
+		if obj.has("properties"):
+			# Add property only if not already contained in properties
+			var found = false
+			for prop in obj["properties"]:
+				if prop["name"].to_lower() == meta_name.to_lower():
+					found = true
+				if not found:
+					obj["properties"].append(prop_dict)
+		else:
+			obj["properties"] = [prop_dict]
+
 
 
 func handle_object(obj: Dictionary, layer_node: Node, tileset: TileSet, offset: Vector2) -> void:
@@ -738,10 +754,19 @@ func handle_object(obj: Dictionary, layer_node: Node, tileset: TileSet, offset: 
 						# then merge them into the template
 						template_obj["properties"] = obj.properties
 
+				# Template obj needs id and obj class/type/name overrides template's class/type/name
+				template_obj["id"] = obj_id
+				if obj.has("class") and obj["class"] != "":
+					template_obj["class"] = obj["class"]
+				if obj.has("type") and obj["type"] != "":
+					template_obj["type"] = obj["type"]
+				if obj.has("name") and obj["name"] != "":
+					template_obj["name"] = obj["name"]
+
 				handle_object(template_obj, layer_node, template_tileset, Vector2(obj_x, obj_y))
 
 	# v1.2: New class 'instance'
-	if godot_type == _godot_type.INSTANCE and not obj.has("template") and not obj.has("text"):
+	if godot_type == _godot_type.INSTANCE and not obj.has("template") and not obj.has("text") and not obj.has("gid"):
 		var res_path = get_property(obj, "res_path", "file")
 		if res_path == "":
 			printerr("Object of class 'instance': Mandatory file property 'res_path' not found or invalid. -> Skipped")
@@ -759,6 +784,10 @@ func handle_object(obj: Dictionary, layer_node: Node, tileset: TileSet, offset: 
 			instance.position = transpose_coords(obj_x, obj_y)
 			instance.rotation_degrees = obj_rot
 			instance.visible = obj_visible
+			if _add_class_as_metadata and class_string != "":
+				instance.set_meta("class", class_string)
+			if _add_id_as_metadata and obj_id != 0:
+				instance.set_meta("id", obj_id)
 			if obj.has("properties"):
 				handle_properties(instance, obj["properties"])
 		return
@@ -811,7 +840,9 @@ func handle_object(obj: Dictionary, layer_node: Node, tileset: TileSet, offset: 
 			td = gid_source.get_tile_data(atlas_coords, 0)
 			obj_sprite.region_enabled = true
 			var region_size = Vector2(gid_source.texture_region_size)
-			var pos: Vector2 = atlas_coords * region_size
+			var separation = Vector2(gid_source.separation)
+			var margins = Vector2(gid_source.margins)
+			var pos: Vector2 = atlas_coords * (region_size + separation) + margins
 			if get_property(obj, "clip_artifacts", "bool") == "true":
 				pos += Vector2(0.5, 0.5)
 				region_size -= Vector2(1.0, 1.0)
@@ -839,6 +870,54 @@ func handle_object(obj: Dictionary, layer_node: Node, tileset: TileSet, offset: 
 				obj_sprite.scale = Vector2(scale_x, scale_y)
 			td = gid_source.get_tile_data(Vector2i.ZERO, 0)
 
+		# Tile objects may already have been classified as instance in the tileset
+		var obj_is_instance = godot_type == _godot_type.INSTANCE and not obj.has("template") and not obj.has("text")
+		var tile_class = ""
+		if td.has_meta(CLASS_INTERNAL):
+			tile_class = td.get_meta(CLASS_INTERNAL)
+			class_string = tile_class
+		if td.has_meta(GODOT_NODE_TYPE_PROPERTY):
+			tile_class = td.get_meta(GODOT_NODE_TYPE_PROPERTY)
+
+		if tile_class.to_lower() == "instance" or obj_is_instance:
+			var res_path = get_property(obj, "res_path", "file")
+			if td.has_meta("res_path"):
+				if res_path == "":
+					res_path = td.get_meta("res_path")
+			if res_path == "":
+				printerr("Object of class 'instance': Mandatory file property 'res_path' not found or invalid. -> Skipped")
+				_error_count += 1
+			else:
+				if obj.has("template_dir_path"):
+					res_path = obj.template_dir_path.path_join(res_path)
+				var scene = load_resource_from_file(res_path)
+				# Error check
+				if scene == null: return
+
+				obj_sprite.owner = null
+				layer_node.remove_child(obj_sprite)
+				var instance = scene.instantiate()
+				layer_node.add_child(instance)
+				instance.owner = _base_node
+				instance.name = obj_name if obj_name != "" else res_path.get_file().get_basename()
+				instance.position = transpose_coords(obj_x, obj_y)
+				instance.rotation_degrees = obj_rot
+				instance.visible = obj_visible
+				convert_metadata_to_obj_properties(td, obj)
+				if _add_class_as_metadata and class_string != "":
+					instance.set_meta("class", class_string)
+				if _add_id_as_metadata and obj_id != 0:
+					instance.set_meta("id", obj_id)
+				if obj.has("properties"):
+					handle_properties(instance, obj["properties"])
+			return
+
+		# Tile objects may already have been classified as ...body in the tileset
+		if tile_class != "" and godot_type == _godot_type.EMPTY:
+			godot_type = get_godot_type(tile_class)
+
+		convert_metadata_to_obj_properties(td, obj)
+
 		var idx = td.get_custom_data(CUSTOM_DATA_INTERNAL)
 		if idx > 0:
 			var parent = {
@@ -848,6 +927,7 @@ func handle_object(obj: Dictionary, layer_node: Node, tileset: TileSet, offset: 
 				_godot_type.BODY: StaticBody2D.new(),
 			}.get(godot_type, null)
 			if parent != null:
+				obj_sprite.owner = null
 				layer_node.remove_child(obj_sprite)
 				layer_node.add_child(parent)
 				parent.owner = _base_node
@@ -857,6 +937,7 @@ func handle_object(obj: Dictionary, layer_node: Node, tileset: TileSet, offset: 
 				obj_sprite.position = Vector2.ZERO
 				obj_sprite.rotation_degrees = 0.0
 				parent.add_child(obj_sprite)
+				obj_sprite.owner = _base_node
 				add_collision_shapes(parent, get_object_group(idx), obj_width, obj_height, flippedH, flippedV, obj_sprite.scale)
 				if obj.has("properties"):
 					handle_properties(parent, obj["properties"])
@@ -1507,7 +1588,7 @@ func get_right_typed_value(type: String, val: String):
 		return val
 	
 
-func handle_properties(target_node: Node, properties: Array, map_properties: bool = false):
+func handle_properties(target_node: Node, properties: Array):
 	var has_children = false
 	if target_node is StaticBody2D or target_node is Area2D or target_node is CharacterBody2D or target_node is RigidBody2D:
 		has_children = target_node.get_child_count() > 0 
@@ -1515,7 +1596,7 @@ func handle_properties(target_node: Node, properties: Array, map_properties: boo
 		var name: String = property.get("name", "")
 		var type: String = property.get("type", "string")
 		var val: String = str(property.get("value", ""))
-		if name == "" or name.to_lower() == GODOT_NODE_TYPE_PROPERTY: continue
+		if name == "" or name.to_lower() == GODOT_NODE_TYPE_PROPERTY or name.to_lower() == "res_path": continue
 		if name.begins_with("__") and has_children:
 			var child_prop_dict = {}
 			child_prop_dict["name"] = name.substr(2)
@@ -1551,17 +1632,13 @@ func handle_properties(target_node: Node, properties: Array, map_properties: boo
 		elif name.to_lower() == "light_mask" and type == "string":
 			target_node.light_mask = get_bitmask_integer_from_string(val, 20)
 		elif name.to_lower() == "visibility_layer" and type == "string":
-			target_node.visibility_layer = get_bitmask_integer_from_string(val, 20)	
-		elif name.to_lower() == "z_index" and type == "int" and (not target_node is TileMap or map_properties):
-			target_node.z_index = int(val)
-		elif name.to_lower() == "canvas_z_index" and type == "int":
+			target_node.visibility_layer = get_bitmask_integer_from_string(val, 20)
+		elif name.to_lower() == "z_index" and type == "int":
 			target_node.z_index = int(val)
 		elif name.to_lower() == "z_as_relative" and type == "bool":
 			target_node.z_as_relative = val.to_lower() == "true"
 		elif name.to_lower() == "y_sort_enabled" and type == "bool":
 			target_node.y_sort_enabled = val.to_lower() == "true"
-			if target_node is TileMap:
-				target_node.set_layer_y_sort_enabled(_tm_layer_counter, val.to_lower() == "true")
 		elif name.to_lower() == "texture_filter" and type == "int":
 			if int(val) < CanvasItem.TEXTURE_FILTER_MAX:
 				target_node.texture_filter = int(val)
@@ -1573,33 +1650,25 @@ func handle_properties(target_node: Node, properties: Array, map_properties: boo
 		elif name.to_lower() == "use_parent_material" and type == "bool":
 			target_node.use_parent_material = val.to_lower() == "true"
 	
-		# TileMap properties
-		elif name.to_lower() == "cell_quadrant_size" and type == "int" and target_node is TileMap:
-			if _godot_version < 0x40200:
-				target_node.cell_quadrant_size = int(val)
-			else:
-				target_node.rendering_quadrant_size = int(val)
-		elif name.to_lower() == "rendering_quadrant_size" and type == "int" and target_node is TileMap:
+		# TileMapLayer properties
+		elif name.to_lower() == "y_sort_origin" and type == "int" and target_node is TileMapLayer:
+			target_node.y_sort_origin = int(val)
+		elif name.to_lower() == "x_draw_order_reversed" and type == "bool" and target_node is TileMapLayer:
+			target_node.x_draw_order_reversed = val.to_lower() == "true"
+		elif name.to_lower() == "rendering_quadrant_size" and type == "int" and target_node is TileMapLayer:
 			target_node.rendering_quadrant_size = int(val)
-		elif name.to_lower() == "collision_animatable" and type == "bool" and target_node is TileMap:
-			target_node.collision_animatable = val.to_lower() == "true"
-		elif name.to_lower() == "collision_visibility_mode" and type == "int" and target_node is TileMap:
+		elif name.to_lower() == "collision_enabled" and type == "bool" and target_node is TileMapLayer:
+			target_node.collision_enabled = val.to_lower() == "true"
+		elif name.to_lower() == "use_kinematic_bodies" and type == "bool" and target_node is TileMapLayer:
+			target_node.use_kinematic_bodies = val.to_lower() == "true"
+		elif name.to_lower() == "collision_visibility_mode" and type == "int" and target_node is TileMapLayer:
 			if int(val) < 3:
 				target_node.collision_visibility_mode = int(val)
-		elif name.to_lower() == "navigation_visibility_mode" and type == "int" and target_node is TileMap:
+		elif name.to_lower() == "navigation_enabled" and type == "bool" and target_node is TileMapLayer:
+			target_node.navigation_enabled = val.to_lower() == "true"
+		elif name.to_lower() == "navigation_visibility_mode" and type == "int" and target_node is TileMapLayer:
 			if int(val) < 3:
 				target_node.navigation_visibility_mode = int(val)
-
-		# TileMap layer properties
-		elif name.to_lower() == "layer_z_index" and type == "int" and target_node is TileMap:
-			target_node.z_index = int(val)
-		elif name.to_lower() == "z_index" and type == "int" and target_node is TileMap:
-			if _map_layers_to_tilemaps:
-				target_node.z_index = int(val)
-			else:
-				target_node.set_layer_z_index(_tm_layer_counter, int(val))
-		elif name.to_lower() == "y_sort_origin" and type == "int" and target_node is TileMap:
-			target_node.set_layer_y_sort_origin(_tm_layer_counter, int(val))
 		
 		# CollisionObject2D properties
 		elif name.to_lower() == "disable_mode" and type == "int" and target_node is CollisionObject2D:
